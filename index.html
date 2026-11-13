@@ -7,118 +7,121 @@
 <title>Timeholes</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap">
 <style>
-/* Layout: jedna obrazovka – úzká hlavička se skóre, pod ní hrací plocha; nabídky jsou skleněné panely nad živou plochou. Záměrně jen tmavý vzhled. */
+/* Layout: one screen. Header = logo + chronometer readout; below it the playfield, a clock face that black holes warp. Menus are glass panels over the live field. Deliberately dark-only. */
 :root{
-  --ink:#15122b;
-  --line:#3a3366;
-  --text:#ece6ff;
-  --muted:#b3aad8;
-  --amber:#ff9a4d;
-  --rose:#ff6f91;
-  --calm:#7dffc4;
-  --blue:#4fb3ff;
+  --void:#06060e;
+  --ink:#0b0a19;
+  --text:#eef0ff;
+  --muted:#9ca2cc;
+  --faint:#6d73a0;
   --orange:#ff8a3d;
-  --glass:rgba(255,255,255,.075);
-  --glass-edge:rgba(255,255,255,.22);
-  --glass-hi:rgba(255,255,255,.14);
-  --display:"Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --ember:#ffb27a;
+  --blue:#5cc0ff;
+  --calm:#7dffc4;
+  --glass-edge:rgba(205,212,255,.18);
+  --display:"Unbounded", "Trebuchet MS", system-ui, sans-serif;
+  --body:"Sora", "Segoe UI", system-ui, sans-serif;
   --mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
   color-scheme:dark;
 }
 html,body{height:100%}
 [hidden]{display:none!important}
-body{color:var(--text);font-family:var(--display);overflow:hidden;
+body{color:var(--text);font-family:var(--body);overflow:hidden;
   background:
-    radial-gradient(60% 50% at 10% 0%, rgba(255,111,145,.28), transparent 70%),
-    radial-gradient(50% 45% at 100% 30%, rgba(120,190,255,.22), transparent 70%),
-    radial-gradient(60% 50% at 50% 110%, rgba(255,181,71,.22), transparent 70%),
-    var(--ink);
+    radial-gradient(55% 45% at 12% 0%, rgba(110,80,255,.22), transparent 70%),
+    radial-gradient(45% 40% at 100% 35%, rgba(60,130,255,.15), transparent 70%),
+    radial-gradient(60% 45% at 50% 112%, rgba(255,120,50,.14), transparent 70%),
+    var(--void);
   padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));box-sizing:border-box}
-.app{height:100%;display:flex;flex-direction:column;gap:10px;padding-block:12px;box-sizing:border-box;max-width:900px;margin:0 auto}
-/* sdílený skleněný povrch */
+.app{height:100%;display:flex;flex-direction:column;gap:10px;padding-block:12px;box-sizing:border-box;max-width:960px;margin:0 auto}
+
+/* shared glass surface, tinted cold like a visor */
 .sheet{
-  background:linear-gradient(155deg, rgba(255,255,255,.13), rgba(255,255,255,.05) 50%, rgba(255,255,255,.025));
-  -webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);
+  background:linear-gradient(160deg, rgba(190,200,255,.11), rgba(150,160,255,.04) 50%, rgba(120,130,255,.02));
+  -webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);
   border:1px solid var(--glass-edge);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.3), inset 0 -1px 0 rgba(255,255,255,.05), 0 12px 40px rgba(5,3,20,.4);
+  box-shadow:inset 0 1px 0 rgba(225,230,255,.22), 0 14px 40px rgba(2,2,10,.5);
 }
-header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 8px 8px 16px;border-radius:20px}
-h1{font-size:1.6rem;font-weight:800;letter-spacing:-.03em;margin:0;line-height:1;transition:opacity .3s}
-h1 .hl,.logo .hl{color:var(--rose)}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px 14px;flex-wrap:wrap;padding:8px 8px 8px 16px;border-radius:20px}
+h1{font-size:1.15rem;margin:0;line-height:1;transition:opacity .3s}
+.menu-on header{display:none}
 .logo-cv{display:inline-block;vertical-align:middle}
-/* písmena „o" jako černé díry */
-.hole{display:inline-block;width:.56em;height:.56em;margin:0 .03em;border-radius:50%;vertical-align:-.02em;
-  background:radial-gradient(circle at 50% 50%, #000 0 55%, #08060f 62%, rgba(0,0,0,0) 72%);
-  box-shadow:0 0 0 .045em rgba(255,236,210,.55), 0 0 .18em .06em rgba(255,236,210,.35), 0 0 .5em .15em rgba(180,150,255,.35)}
-.logo .hole{box-shadow:0 0 0 .03em rgba(255,236,210,.6), 0 0 .14em .05em rgba(255,236,210,.4), 0 0 .45em .14em rgba(180,150,255,.4)}
-.menu-on h1{opacity:0}
-.stats{display:flex;gap:6px;flex-wrap:wrap;font-family:var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
-.chip{display:flex;align-items:baseline;gap:7px;padding:6px 11px;border-radius:999px;font-size:.62rem;letter-spacing:.1em;
-  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
-.chip b{color:var(--text);font-weight:500;font-size:.95rem;letter-spacing:0}
-.chip.score b{color:var(--amber)}
-.chip.bump{animation:bump .35s ease-out}
-@keyframes bump{40%{transform:scale(1.12);background:rgba(255,181,71,.22)}}
-@media (prefers-reduced-motion: reduce){.chip.bump{animation:none}}
+
+/* chronometer readout */
+.readout{display:flex;border-radius:14px;background:rgba(0,0,10,.3);border:1px solid rgba(205,212,255,.1);box-shadow:inset 0 1px 6px rgba(0,0,0,.35)}
+.cell{display:flex;flex-direction:column;gap:3px;padding:6px 14px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.cell + .cell{border-left:1px solid rgba(205,212,255,.1)}
+.cell span{font-size:.56rem;letter-spacing:.16em;color:var(--faint)}
+.cell b{font-weight:500;font-size:1rem;line-height:1;color:var(--text)}
+.cell.time b{color:var(--ember);min-width:6.2ch}
+.cell.bump b{animation:bump .4s ease-out}
+@keyframes bump{40%{color:var(--orange);text-shadow:0 0 12px rgba(255,138,61,.8)}}
+@media (prefers-reduced-motion: reduce){.cell.bump b{animation:none}}
+
 .stage{position:relative;flex:1;min-height:0;border-radius:24px;overflow:hidden;touch-action:none}
-.stage.sheet{background:linear-gradient(155deg, rgba(255,255,255,.08), rgba(21,18,43,.5) 40%, rgba(21,18,43,.6))}
+.stage.sheet{background:linear-gradient(160deg, rgba(150,160,255,.06), rgba(8,8,20,.6) 40%, rgba(8,8,20,.7))}
 .stage > canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
 .pause{position:absolute;top:max(12px, env(safe-area-inset-top, 0px));right:12px;width:44px;height:44px;border-radius:50%;padding:0;display:grid;place-items:center;color:var(--text)}
-.pause svg{width:16px;height:16px}
+.pause svg{width:15px;height:15px}
 
-/* --- sklo --- */
+/* glass panels */
 .panel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
 .glass{
-  position:relative;width:min(100%, 360px);box-sizing:border-box;
-  background:linear-gradient(155deg, var(--glass-hi), var(--glass) 45%, rgba(255,255,255,.03));
-  -webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%);
-  border:1px solid var(--glass-edge);border-radius:24px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.35), inset 0 -1px 0 rgba(255,255,255,.06), 0 24px 60px rgba(5,3,20,.55);
-  padding:28px 24px 22px;display:flex;flex-direction:column;gap:18px;
+  position:relative;width:min(100%, 370px);box-sizing:border-box;
+  background:linear-gradient(160deg, rgba(200,208,255,.13), rgba(150,160,255,.05) 45%, rgba(20,20,45,.35));
+  -webkit-backdrop-filter:blur(24px) saturate(150%);backdrop-filter:blur(24px) saturate(150%);
+  border:1px solid var(--glass-edge);border-radius:26px;
+  box-shadow:inset 0 1px 0 rgba(230,235,255,.3), 0 30px 70px rgba(2,2,10,.6);
+  padding:26px 24px 20px;display:flex;flex-direction:column;gap:18px;
   animation:rise .5s cubic-bezier(.2,.8,.2,1) both;
 }
-.glass::before{ /* odlesk na horní hraně */
+.glass::before{
   content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
-  background:radial-gradient(120% 60% at 15% -10%, rgba(255,255,255,.22), transparent 55%);
+  background:radial-gradient(110% 55% at 12% -12%, rgba(230,235,255,.16), transparent 55%);
 }
 @keyframes rise{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion: reduce){.glass{animation:none}}
 
-.eyebrow{margin:0;font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center}
-.logo{margin:-6px 0 0;white-space:nowrap;font-size:clamp(2.3rem, 11vw, 3.6rem);font-weight:800;letter-spacing:-.04em;line-height:.95;text-align:center;
-  text-shadow:0 0 28px rgba(255,111,145,.35)}
-.over-title{margin:0;font-size:1.6rem;font-weight:800;line-height:1.1;text-wrap:balance}
-.glass p{margin:0;color:var(--muted);line-height:1.5;font-size:.95rem}
-.glass p strong{color:var(--text)}
+.eyebrow{margin:0;font-family:var(--mono);font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);text-align:center}
+.logo{margin:-4px 0 -2px;white-space:nowrap;font-size:clamp(1.75rem, 8.4vw, 2.6rem);line-height:1;text-align:center}
+.tagline{margin:-8px 0 0;text-align:center;font-size:.86rem;color:var(--muted)}
+.over-title{margin:0;font-family:var(--display);font-size:1.3rem;font-weight:700;line-height:1.2;letter-spacing:-.01em;text-wrap:balance}
+.glass p{margin:0;color:var(--muted);line-height:1.55;font-size:.92rem}
+.glass p strong{color:var(--text);font-weight:600}
 
 .stack{display:flex;flex-direction:column;gap:10px}
-button{font:700 1rem var(--display);border-radius:14px;padding:13px 18px;cursor:pointer;color:var(--text);transition:transform .12s, background .2s, border-color .2s}
+button{font:600 .98rem var(--body);border-radius:14px;padding:13px 18px;cursor:pointer;color:var(--text);transition:transform .12s, background .2s, border-color .2s, box-shadow .2s}
 button:active{transform:scale(.98)}
-button:focus-visible{outline:2px solid var(--calm);outline-offset:3px}
-.primary{border:1px solid rgba(255,214,150,.7);color:#2a1a00;font-size:1.1rem;
-  background:linear-gradient(180deg, #ffc48f, var(--amber));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 8px 26px rgba(255,138,61,.35)}
-.primary:hover{background:linear-gradient(180deg, #ffdca3, #ffbf5e)}
-.ghost{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18)}
-.ghost:hover{background:rgba(255,255,255,.13)}
+button:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+.primary{border:1px solid rgba(255,200,150,.7);color:#2b1200;font-family:var(--display);font-weight:700;font-size:1rem;letter-spacing:.06em;text-transform:uppercase;
+  background:radial-gradient(120% 140% at 50% 0%, #ffd2a8, var(--orange) 70%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55), 0 0 0 4px rgba(255,138,61,.12), 0 10px 30px rgba(255,120,50,.35)}
+.primary:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.55), 0 0 0 6px rgba(255,138,61,.16), 0 12px 36px rgba(255,120,50,.45)}
+.ghost{background:rgba(200,208,255,.06);border:1px solid rgba(205,212,255,.16)}
+.ghost:hover{background:rgba(200,208,255,.12)}
 
-.label{font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 6px 2px}
-.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:14px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.1)}
-.seg button{padding:9px 6px;font-size:.88rem;font-weight:700;background:transparent;border:1px solid transparent;border-radius:10px;color:var(--muted)}
-.seg button[aria-checked="true"]{color:var(--text);background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
-.diff-note{margin:6px 2px 0;font-size:.8rem;color:var(--muted);min-height:1.2em}
+.label{font-family:var(--mono);font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:0 0 6px 2px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:14px;background:rgba(0,0,10,.3);border:1px solid rgba(205,212,255,.1)}
+.seg button{padding:9px 6px;font-size:.84rem;font-weight:600;background:transparent;border:1px solid transparent;border-radius:10px;color:var(--muted)}
+.seg button[aria-checked="true"]{color:var(--text);background:rgba(200,208,255,.13);border-color:rgba(205,212,255,.22);box-shadow:inset 0 1px 0 rgba(230,235,255,.22)}
+.diff-note{margin:6px 2px 0;font-size:.78rem;color:var(--muted);min-height:1.2em}
 
-.how{display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:14px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.08)}
-.legend{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;font-size:.86rem;color:var(--muted)}
+.how{display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:14px;background:rgba(0,0,10,.28);border:1px solid rgba(205,212,255,.08)}
+.legend{display:grid;grid-template-columns:auto 1fr;gap:7px 10px;align-items:center;font-size:.82rem;color:var(--muted)}
 .dot{width:11px;height:11px;border-radius:50%}
-.hint{font-family:var(--mono);font-size:.68rem;color:var(--muted);letter-spacing:.04em}
+.hint{font-family:var(--mono);font-size:.62rem;color:var(--faint);letter-spacing:.06em}
 
-.foot{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;color:var(--muted);
-  border-top:1px solid rgba(255,255,255,.1);padding-top:12px;font-variant-numeric:tabular-nums}
-.foot b{color:var(--amber);font-weight:500;font-size:1rem;margin-left:6px}
-.bignum{font-family:var(--mono);font-size:3rem;line-height:1;color:var(--amber);font-variant-numeric:tabular-nums}
+.foot{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;color:var(--faint);
+  border-top:1px solid rgba(205,212,255,.1);padding-top:12px;font-variant-numeric:tabular-nums}
+.foot b{color:var(--ember);font-weight:500;font-size:1rem;letter-spacing:0;margin-left:6px}
+.result{display:grid;grid-template-columns:1fr 1fr;border-radius:16px;background:rgba(0,0,10,.3);border:1px solid rgba(205,212,255,.1)}
+.result div{display:flex;flex-direction:column;gap:6px;padding:12px 14px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.result div + div{border-left:1px solid rgba(205,212,255,.1)}
+.result span{font-size:.58rem;letter-spacing:.16em;color:var(--faint)}
+.result b{font-weight:500;font-size:1.9rem;line-height:1;color:var(--ember)}
+@media (max-width:420px){ header{padding-left:12px} .cell{padding:6px 10px} }
 </style>
 
 </head>
@@ -126,10 +129,10 @@ button:focus-visible{outline:2px solid var(--calm);outline-offset:3px}
 <div class="app menu-on" id="app">
   <header class="sheet">
     <h1 aria-label="Timeholes"><canvas class="logo-cv" aria-hidden="true"></canvas></h1>
-    <div class="stats">
-      <span class="chip score" id="scoreChip">LIGHTS<b id="score">0</b></span>
-      <span class="chip">ECHOES<b id="echoes">0</b></span>
-      <span class="chip">BEST<b id="best">0</b></span>
+    <div class="readout">
+      <div class="cell time"><span>TIME</span><b id="time">00:00.0</b></div>
+      <div class="cell" id="scoreChip"><span>LIGHTS</span><b id="score">0</b></div>
+      <div class="cell"><span>ECHOES</span><b id="echoes">0</b></div>
     </div>
   </header>
   <div class="stage sheet" id="stage">
@@ -142,8 +145,8 @@ button:focus-visible{outline:2px solid var(--calm);outline-offset:3px}
 
       <div class="glass" id="paused" hidden>
         <p class="eyebrow">Paused</p>
-        <h2 class="over-title">The echoes are waiting.</h2>
-        <p>Current run: <strong id="pauseScore">0</strong> lights, <strong id="pauseEchoes">0</strong> echoes.</p>
+        <h2 class="over-title">Time stands still.</h2>
+        <p>Current run: <strong id="pauseScore">0</strong> lights, <strong id="pauseEchoes">0</strong> echoes, <strong id="pauseTime">00:00.0</strong> survived.</p>
         <div class="stack">
           <button class="primary" id="resume">Resume</button>
           <button class="ghost" id="quit">Main menu</button>
@@ -154,6 +157,7 @@ button:focus-visible{outline:2px solid var(--calm);outline-offset:3px}
       <div class="glass" id="menu">
         <p class="eyebrow">A game about your own past</p>
         <h2 class="logo" aria-label="Timeholes"><canvas class="logo-cv" aria-hidden="true"></canvas></h2>
+        <p class="tagline">Every step you take comes back for you.</p>
         <div class="stack">
           <button class="primary" id="go">Play</button>
           <div>
@@ -171,7 +175,7 @@ button:focus-visible{outline:2px solid var(--calm);outline-offset:3px}
             <div class="legend">
               <span class="dot" style="background:var(--blue)"></span><span>you</span>
               <span class="dot" style="background:var(--orange)"></span><span>a light to collect</span>
-              <span class="dot" style="background:#000;box-shadow:0 0 0 1px rgba(255,236,210,.5)"></span><span>an echo: a black hole that bends space around it</span>
+              <span class="dot" style="background:#000;box-shadow:0 0 0 1px rgba(255,236,210,.5)"></span><span>an echo: a black hole that bends space around it. Its thin arc shows how much of its loop is left.</span>
               <span class="dot" style="border:1.5px solid rgba(255,255,255,.6);box-sizing:border-box"></span><span>ring with rays: where an echo is born</span>
               <span class="dot" style="border:1.5px dashed rgba(255,255,255,.6);box-sizing:border-box;background:radial-gradient(circle, rgba(255,255,255,.7) 25%, transparent 30%)"></span><span>dashed ring: where it collapses</span>
               <span class="dot" style="background:var(--calm)"></span><span>a green light erases your oldest echo</span>
@@ -185,7 +189,10 @@ button:focus-visible{outline:2px solid var(--calm);outline-offset:3px}
       <div class="glass" id="over" hidden>
         <p class="eyebrow">Game over</p>
         <h2 class="over-title">Your own echo caught you.</h2>
-        <div class="bignum" id="overScore">0</div>
+        <div class="result">
+          <div><span>LIGHTS</span><b id="overScore">0</b></div>
+          <div><span>SURVIVED</span><b id="overTime">00:00.0</b></div>
+        </div>
         <p id="overText"></p>
         <div class="stack">
           <button class="primary" id="again">Play again</button>
@@ -204,7 +211,7 @@ const stage = document.getElementById('stage');
 const $ = id => document.getElementById(id);
 const css = getComputedStyle(document.documentElement);
 const C = k => css.getPropertyValue(k).trim();
-const COL = {amber:C('--amber'), rose:C('--rose'), calm:C('--calm'), line:C('--line')};
+const COL = {calm:C('--calm')};
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const DIFF = {
@@ -254,7 +261,7 @@ function paintSky(gx){
     const t = rnd(), off = (rnd() - .5) * Math.min(W,H) * .25;
     const x = ax + (bx-ax)*t + nx*off, y = ay + (by-ay)*t + ny*off, r = Math.min(W,H) * (.12 + rnd()*.18);
     const g = gx.createRadialGradient(x, y, 0, x, y, r);
-    const c = rnd() < .5 ? '170,150,255' : '255,170,200';
+    const c = rnd() < .6 ? '150,155,255' : '255,175,140';
     g.addColorStop(0, `rgba(${c},.07)`); g.addColorStop(1, `rgba(${c},0)`);
     gx.fillStyle = g; gx.fillRect(x - r, y - r, r*2, r*2);
   }
@@ -269,9 +276,42 @@ function paintSky(gx){
     const t = rnd(), off = (rnd() + rnd() + rnd() - 1.5) * Math.min(W,H) * .16;
     star(ax + (bx-ax)*t + nx*off, ay + (by-ay)*t + ny*off, .3 + rnd()*.4, .2 + rnd()*.45, tints[Math.floor(rnd()*2)]);
   }
+  // clock face: 60 ticks, 12 numbered, around the middle of the field
+  const R = Math.min(W, H) * .43, cx = W/2, cy = H/2;
+  gx.save(); gx.translate(cx, cy);
+  gx.lineWidth = 1; gx.strokeStyle = 'rgba(205,212,255,.13)';
+  gx.beginPath(); gx.arc(0, 0, R, 0, 7); gx.stroke();
+  gx.strokeStyle = 'rgba(205,212,255,.06)';
+  gx.beginPath(); gx.arc(0, 0, R*.64, 0, 7); gx.stroke();
+  gx.beginPath(); gx.arc(0, 0, R*.28, 0, 7); gx.stroke();
+  for (let i = 0; i < 60; i++) {
+    const ang = i/60*Math.PI*2 - Math.PI/2, major = i % 5 === 0, L = major ? 11 : 4;
+    gx.strokeStyle = `rgba(205,212,255,${major ? .34 : .16})`; gx.lineWidth = major ? 1.4 : 1;
+    gx.beginPath(); gx.moveTo(Math.cos(ang)*(R-L), Math.sin(ang)*(R-L)); gx.lineTo(Math.cos(ang)*R, Math.sin(ang)*R); gx.stroke();
+    if (major) {
+      gx.fillStyle = 'rgba(205,212,255,.3)'; gx.font = '500 9px "JetBrains Mono", monospace';
+      gx.textAlign = 'center'; gx.textBaseline = 'middle';
+      gx.fillText(String(i).padStart(2,'0'), Math.cos(ang)*(R-22), Math.sin(ang)*(R-22));
+    }
+  }
+  gx.restore();
   twinkles = [];
   const m = Math.round(8 + W * H / 40000);
   for (let i = 0; i < m; i++) twinkles.push({x: rnd()*W, y: rnd()*H, r: 1 + rnd()*1.2, ph: rnd()*7, sp: .8 + rnd()*1.6, c: tints[Math.floor(rnd()*4)]});
+}
+// second hand: in a run it shows the time you have survived, in the menu it just turns
+function drawSweep(){
+  const R = Math.min(W, H) * .43, cx = W/2, cy = H/2;
+  const sec = S.mode === 'menu' ? S.t * 1.5 : S.runT;
+  const a = (sec % 60) / 60 * Math.PI * 2 - Math.PI/2;
+  if (X.createConicGradient) {
+    const g = X.createConicGradient(a - .9, cx, cy);
+    g.addColorStop(0, 'rgba(255,160,100,0)'); g.addColorStop(.143, 'rgba(255,160,100,.10)'); g.addColorStop(.1432, 'rgba(255,160,100,0)'); g.addColorStop(1, 'rgba(255,160,100,0)');
+    X.fillStyle = g; X.beginPath(); X.arc(cx, cy, R, 0, 7); X.fill();
+  }
+  X.strokeStyle = 'rgba(255,178,122,.4)'; X.lineWidth = 1;
+  X.beginPath(); X.moveTo(cx + Math.cos(a)*R*.1, cy + Math.sin(a)*R*.1); X.lineTo(cx + Math.cos(a)*(R - 2), cy + Math.sin(a)*(R - 2)); X.stroke();
+  X.fillStyle = 'rgba(255,178,122,.55)'; X.beginPath(); X.arc(cx, cy, 2.2, 0, 7); X.fill();
 }
 function drawTwinkles(){
   for (const s of twinkles) {
@@ -286,14 +326,17 @@ function drawTwinkles(){
 }
 
 const STEP = 1/60, SPEED = 230, PR = 7, ER = 6, OR = 9, PULL = 90;
-const S = { player:{x:0,y:0}, target:{x:0,y:0}, hist:[], seg:0, echoes:[], orb:null, score:0, running:false, mode:'menu', t:0, flash:0, trail:[], glow:1 };
+const S = { player:{x:0,y:0}, target:{x:0,y:0}, hist:[], seg:0, echoes:[], orb:null, score:0, runT:0, running:false, mode:'menu', t:0, flash:0, trail:[], glow:1 };
 
 function reset(){
   S.player = {x:W/2, y:H/2}; S.target = {...S.player};
-  S.prev = null; S.hist = [{...S.player}]; S.seg = 0; S.echoes = []; S.score = 0; S.trail = []; S.flash = 0;
+  S.prev = null; S.hist = [{...S.player}]; S.seg = 0; S.echoes = []; S.score = 0; S.runT = 0; S.trail = []; S.flash = 0;
   spawnOrb(); hud();
 }
-function hud(){ $('score').textContent = S.score; $('echoes').textContent = S.echoes.length; $('best').textContent = getBest(diff); }
+const fmtT = t => { const m = Math.floor(t/60), s = t - m*60; return String(m).padStart(2,'0') + ':' + s.toFixed(1).padStart(4,'0'); };
+let lastT = '';
+function hud(){ $('score').textContent = S.score; $('echoes').textContent = S.echoes.length; tickTime(); }
+function tickTime(){ const t = fmtT(S.runT); if (t !== lastT) { lastT = t; $('time').textContent = t; } }
 
 function addDemo(){
   S.orb = null;
@@ -344,7 +387,7 @@ function clampT(){
 }
 
 function step(){
-  const p = S.player; S.prev = {x:p.x, y:p.y};
+  const p = S.player; S.prev = {x:p.x, y:p.y}; S.runT += STEP;
   const kx = (keys.arrowright||keys.d?1:0) - (keys.arrowleft||keys.a?1:0);
   const ky = (keys.arrowdown||keys.s?1:0) - (keys.arrowup||keys.w?1:0);
   if (kx || ky) { const l = Math.hypot(kx,ky); S.target.x = p.x + kx/l*SPEED*STEP; S.target.y = p.y + ky/l*SPEED*STEP; clampT(); }
@@ -408,7 +451,7 @@ function syncMenu(){
 function showMenu(){
   S.running = false; S.mode = 'menu'; drag = null;
   reset(); addDemo(); hud();
-  showPanel('menu'); app.classList.add('menu-on'); syncMenu(); $('go').focus();
+  showPanel('menu'); app.classList.add('menu-on'); syncMenu(); $('go').focus({focusVisible:false});
 }
 function showPanel(id){
   $('panel').hidden = !id;
@@ -422,8 +465,8 @@ function start(){
 function pause(){
   if (S.mode !== 'play') return;
   S.running = false; S.mode = 'pause'; drag = null;
-  $('pauseScore').textContent = S.score; $('pauseEchoes').textContent = S.echoes.length;
-  showPanel('paused'); $('resume').focus();
+  $('pauseScore').textContent = S.score; $('pauseEchoes').textContent = S.echoes.length; $('pauseTime').textContent = fmtT(S.runT);
+  showPanel('paused'); $('resume').focus({focusVisible:false});
 }
 function resume(){
   if (S.mode !== 'pause') return;
@@ -438,12 +481,12 @@ function die(){
   const old = getBest(diff), nb = S.score > old;
   if (nb) setBest(diff, S.score);
   hud();
-  $('overScore').textContent = S.score;
+  $('overScore').textContent = S.score; $('overTime').textContent = fmtT(S.runT);
   const w = S.score === 1 ? 'light' : 'lights';
   $('overText').innerHTML = nb
-    ? `${S.score} ${w} collected on ${DIFF[diff].name}. <strong>New best.</strong>`
+    ? `<strong>New best</strong> on ${DIFF[diff].name}.`
     : `Your best on ${DIFF[diff].name} is <strong>${old}</strong>. Short, clean paths make short echoes.`;
-  showPanel('over'); $('again').focus();
+  showPanel('over'); $('again').focus({focusVisible:false});
 }
 
 $('go').addEventListener('click', start);
@@ -461,9 +504,9 @@ $('seg').addEventListener('click', e => {
 
 // --- kreslení ---
 const blobs = [
-  {c:'255,111,145', r:.55, sx:.13, sy:.09, px:.3, py:.35},
-  {c:'255,181,71',  r:.45, sx:.08, sy:.12, px:.7, py:.65},
-  {c:'120,190,255', r:.5,  sx:.1,  sy:.07, px:.6, py:.25},
+  {c:'105,80,235', r:.55, sx:.13, sy:.09, px:.3, py:.35},
+  {c:'255,120,55',  r:.42, sx:.08, sy:.12, px:.72, py:.7, k:.55},
+  {c:'60,135,255',  r:.5,  sx:.1,  sy:.07, px:.62, py:.22},
 ];
 let X = ctx; // kontext, do kterého se právě kreslí
 function glassBall(x, y, r, c, a = 1){
@@ -593,10 +636,11 @@ function draw(){
     const t = reduce ? 0 : S.t;
     const x = W*(b.px + Math.sin(t*b.sx*2)*.18), y = H*(b.py + Math.cos(t*b.sy*2)*.18), r = m*b.r;
     const g = X.createRadialGradient(x,y,0,x,y,r);
-    g.addColorStop(0, `rgba(${b.c},${.38*S.glow})`); g.addColorStop(1, `rgba(${b.c},0)`);
+    g.addColorStop(0, `rgba(${b.c},${.34*(b.k||1)*S.glow})`); g.addColorStop(1, `rgba(${b.c},0)`);
     X.fillStyle = g; X.fillRect(0,0,W,H);
   }
   X.drawImage(grid, 0, 0, W, H);
+  drawSweep();
   drawTwinkles();
 
   for (const e of S.echoes) {
@@ -652,7 +696,15 @@ function draw(){
     return {x:h.x + (nx.x - h.x)*f, y:h.y + (nx.y - h.y)*f, a: a*sc, base:a, sc, e};
   });
   if (gl) renderLens(holes); else ctx.drawImage(bg, 0, 0, W, H);
-  for (const h of holes) { core(h.x, h.y, h.base, h.sc); if (h.e.phase) phaseFx(h.x, h.y, h.e); }
+  for (const h of holes) {
+    core(h.x, h.y, h.base, h.sc);
+    if (h.e.phase) phaseFx(h.x, h.y, h.e);
+    else if (!h.e.demo && h.e.pts.length > 1) {
+      const left = 1 - h.e.i / (h.e.pts.length - 1);
+      ctx.lineWidth = 1.4; ctx.lineCap = 'round'; ctx.strokeStyle = `rgba(255,178,122,${.7*h.base})`;
+      ctx.beginPath(); ctx.arc(h.x, h.y, RC + 4, -Math.PI/2, -Math.PI/2 + left*Math.PI*2); ctx.stroke();
+    }
+  }
   const o = S.orb;
   if (o) {
     const pulse = reduce ? 0 : Math.sin(S.t*5) * 2;
@@ -661,6 +713,12 @@ function draw(){
     g.addColorStop(0, c); g.addColorStop(1, 'rgba(0,0,0,0)');
     X.globalAlpha = .35; X.fillStyle = g; X.beginPath(); X.arc(o.x,o.y,OR*3.2,0,7); X.fill(); X.globalAlpha = 1;
     glassBall(o.x, o.y, OR + pulse*.5, o.kind === 'calm' ? calmC : orangeC);
+    const cc = o.kind === 'calm' ? calmC : orangeC, rot = reduce ? 0 : S.t * 1.2;
+    X.lineWidth = 1.2; X.strokeStyle = cc(.7);
+    for (let k = 0; k < 12; k++) {
+      const ang = rot + k/12*Math.PI*2, r0 = OR + 5, r1 = OR + (k % 3 ? 7 : 9.5);
+      X.beginPath(); X.moveTo(o.x + Math.cos(ang)*r0, o.y + Math.sin(ang)*r0); X.lineTo(o.x + Math.cos(ang)*r1, o.y + Math.sin(ang)*r1); X.stroke();
+    }
   }
 
   if (S.mode !== 'menu') {
@@ -679,7 +737,7 @@ let last = performance.now(), acc = 0, LERP = 0;
 function loop(now){
   acc += Math.min(0.1, (now - last)/1000); last = now;
   while (acc >= STEP) { if (S.running) step(); else if (S.mode === 'menu') idleStep(); S.t += STEP; acc -= STEP; }
-  LERP = acc / STEP; draw(); requestAnimationFrame(loop);
+  LERP = acc / STEP; if (S.running) tickTime(); draw(); requestAnimationFrame(loop);
 }
 
 
@@ -687,10 +745,10 @@ function loop(now){
 function renderLogo(cv){
   const host = cv.parentElement, fs = parseFloat(getComputedStyle(host).fontSize);
   const dp = Math.min(devicePixelRatio || 1, 2);
-  const font = `800 ${fs}px "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif`;
+  const font = `800 ${fs}px "Unbounded", "Trebuchet MS", system-ui, sans-serif`;
   const m = document.createElement('canvas').getContext('2d'); m.font = font;
-  const ls = -0.03 * fs, holeD = fs * 0.5, gap = fs * 0.08;
-  const parts = [['Time', C('--text')], ['h', C('--rose')], [null], ['les', C('--rose')]];
+  const ls = -0.01 * fs, holeD = fs * 0.62, gap = fs * 0.05;
+  const parts = [['Time', C('--text')], ['h', C('--ember')], [null], ['les', C('--ember')]];
   const pad = Math.round(fs * 0.35);
   let w = pad;
   const lay = parts.map(([t, c]) => {
@@ -710,7 +768,7 @@ function renderLogo(cv){
     if (L.t === null) { hx = L.x + gap + holeD/2; continue; }
     sx.fillStyle = L.c; sx.fillText(L.t, L.x, base);
   }
-  const hy = base - fs * 0.25, hr = holeD / 2;
+  const hy = base - fs * 0.37, hr = holeD / 2;
   // zakřivení po pixelech
   const sd = sx.getImageData(0, 0, W2, H2).data;
   const out = new ImageData(W2, H2), od = out.data;
@@ -733,7 +791,7 @@ function renderLogo(cv){
   const c = cv.getContext('2d'); c.putImageData(out, 0, 0); c.scale(dp, dp);
   // jádro díry
   const g = c.createRadialGradient(hx, hy, hr*.8, hx, hy, hr*2.2);
-  g.addColorStop(0, 'rgba(180,150,255,.35)'); g.addColorStop(1, 'rgba(180,150,255,0)');
+  g.addColorStop(0, 'rgba(255,140,70,.35)'); g.addColorStop(1, 'rgba(255,140,70,0)');
   c.fillStyle = g; c.beginPath(); c.arc(hx, hy, hr*2.2, 0, 7); c.fill();
   const g2 = c.createRadialGradient(hx, hy, hr*.55, hx, hy, hr*1.25);
   g2.addColorStop(0, 'rgba(0,0,0,1)'); g2.addColorStop(1, 'rgba(0,0,0,0)');
@@ -743,7 +801,7 @@ function renderLogo(cv){
   c.beginPath(); c.arc(hx, hy, hr*.82 + c.lineWidth/2, 0, 7); c.stroke();
 }
 function renderLogos(){ document.querySelectorAll('.logo-cv').forEach(renderLogo); }
-(document.fonts ? document.fonts.ready : Promise.resolve()).then(renderLogos);
+(document.fonts ? Promise.all([document.fonts.load('800 40px "Unbounded"'), document.fonts.ready]).catch(() => {}) : Promise.resolve()).then(renderLogos);
 let logoT; addEventListener('resize', () => { clearTimeout(logoT); logoT = setTimeout(renderLogos, 150); });
 resize(); showMenu();
 new ResizeObserver(resize).observe(stage);
