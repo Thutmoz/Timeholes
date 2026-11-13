@@ -209,9 +209,10 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
         <div class="sheet" role="dialog" aria-labelledby="howTitle">
           <h2 id="howTitle">How to play</h2>
           <p>Collect the orange lights. Every light you collect spawns an <strong>echo</strong>, a small black hole that endlessly replays the exact path you took to reach it. Touch one of your own echoes and the run is over.</p>
+          <p>Lights burn out. The ticks around a light go dark one by one; when the last one is gone, the light disappears and your path still becomes an echo. Standing still will not save you.</p>
           <div class="legend">
             <span class="dot" style="background:var(--blue)"></span><span>you</span>
-            <span class="dot" style="background:var(--orange)"></span><span>a light to collect</span>
+            <span class="dot" style="background:var(--orange)"></span><span>a light to collect; its ticks count down until it burns out</span>
             <span class="dot" style="background:#000;box-shadow:0 0 0 1px rgba(255,236,210,.5)"></span><span>an echo: a black hole that bends space around it. Its thin arc shows how much of its loop is left.</span>
             <span class="dot" style="border:1.5px solid rgba(255,255,255,.6);box-sizing:border-box"></span><span>ring with rays: where an echo is born</span>
             <span class="dot" style="border:1.5px dashed rgba(255,255,255,.6);box-sizing:border-box;background:radial-gradient(circle, rgba(255,255,255,.7) 25%, transparent 30%)"></span><span>dashed ring: where it collapses</span>
@@ -249,9 +250,9 @@ const COL = {calm:C('--calm')};
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const DIFF = {
-  easy:  {name:'Calm',   calm:3, far:.22, note:'Every 3rd light erases one echo.'},
-  normal:{name:'Normal', calm:5, far:.28, note:'Every 5th light erases one echo.'},
-  hard:  {name:'Stormy', calm:0, far:.36, note:'No erasing. Lights spawn far away.'},
+  easy:  {name:'Calm',   calm:3, far:.22, life:11, note:'Every 3rd light erases one echo. Lights burn for 11 s.'},
+  normal:{name:'Normal', calm:5, far:.28, life:8,  note:'Every 5th light erases one echo. Lights burn for 8 s.'},
+  hard:  {name:'Stormy', calm:0, far:.36, life:6,  note:'No erasing. Lights spawn far away and burn for 6 s.'},
 };
 let diff = 'normal';
 try { diff = localStorage.getItem('ozvena-diff') || 'normal'; if (!DIFF[diff]) diff = 'normal'; } catch(e){}
@@ -364,7 +365,7 @@ const S = { player:{x:0,y:0}, target:{x:0,y:0}, hist:[], seg:0, echoes:[], orb:n
 
 function reset(){
   S.player = {x:W/2, y:H/2}; S.target = {...S.player};
-  S.prev = null; S.hist = [{...S.player}]; S.seg = 0; S.echoes = []; S.score = 0; S.runT = 0; S.trail = []; S.flash = 0;
+  S.prev = null; S.hist = [{...S.player}]; S.seg = 0; S.echoes = []; S.score = 0; S.runT = 0; S.miss = null; S.trail = []; S.flash = 0;
   spawnOrb(); hud();
 }
 const fmtT = t => { const m = Math.floor(t/60), s = t - m*60; return String(m).padStart(2,'0') + ':' + s.toFixed(1).padStart(4,'0'); };
@@ -395,7 +396,18 @@ function spawnOrb(){
     if (dmin > bestD) { bestD = dmin; bestP = p; }
     if (dmin > 40) break;
   }
-  S.orb = {...(bestP || {x:W*Math.random(), y:H*Math.random()}), kind};
+  const pos = bestP || {x:W*Math.random(), y:H*Math.random()};
+  // each light burns out: never less than the difficulty's time, and always enough to reach it with some detour
+  const life = Math.max(cfg.life, Math.hypot(pos.x - S.player.x, pos.y - S.player.y) / SPEED * 2.2 + 3);
+  S.orb = {...pos, kind, life, max: life};
+}
+// a light that burns out still turns your path into an echo, but scores nothing
+function missOrb(){
+  const o = S.orb, p = S.player;
+  if (S.hist.length > 8) S.echoes.push({pts:S.hist, i:0, grace:40, hue:(S.score*37) % 60, loop:true});
+  S.hist = [{x:p.x, y:p.y}]; S.seg = 0;
+  S.miss = {x:o.x, y:o.y, t:1, c:o.kind === 'calm' ? '125,255,196' : '255,138,61'};
+  spawnOrb(); hud();
 }
 
 // --- vstup ---
@@ -449,6 +461,9 @@ function step(){
     S.hist = [{x:p.x, y:p.y}]; S.seg = 0;
     S.score++; S.flash = 1; hud(); spawnOrb();
     const ch = $('scoreChip'); ch.classList.remove('bump'); void ch.offsetWidth; ch.classList.add('bump');
+  } else if (o) {
+    o.life -= STEP;
+    if (o.life <= 0) missOrb();
   }
 }
 function idleStep(){ for (const e of S.echoes) if (e.dying === undefined) advance(e); }
@@ -752,10 +767,16 @@ function draw(){
     g.addColorStop(0, c); g.addColorStop(1, 'rgba(0,0,0,0)');
     X.globalAlpha = .35; X.fillStyle = g; X.beginPath(); X.arc(o.x,o.y,OR*3.2,0,7); X.fill(); X.globalAlpha = 1;
     glassBall(o.x, o.y, OR + pulse*.5, o.kind === 'calm' ? calmC : orangeC);
-    const cc = o.kind === 'calm' ? calmC : orangeC, rot = reduce ? 0 : S.t * 1.2;
-    X.lineWidth = 1.2; X.strokeStyle = cc(.7);
+    // bezel ticks = countdown: they go out one by one, clockwise from the top
+    const cc = o.kind === 'calm' ? calmC : orangeC;
+    const frac = o.max ? Math.max(0, (o.life - (S.running ? LERP*STEP : 0)) / o.max) : 1;
+    const lit = frac * 12, urgent = frac < .25;
+    const blink = urgent && !reduce ? .55 + .45 * Math.sin(S.t * 18) : 1;
+    X.lineWidth = 1.3;
     for (let k = 0; k < 12; k++) {
-      const ang = rot + k/12*Math.PI*2, r0 = OR + 5, r1 = OR + (k % 3 ? 7 : 9.5);
+      const ang = -Math.PI/2 + k/12*Math.PI*2, r0 = OR + 5, r1 = OR + (k % 3 ? 7.5 : 10);
+      const on = Math.max(0, Math.min(1, lit - (11 - k)));
+      X.strokeStyle = on > 0 ? cc((.25 + .65*on) * blink) : 'rgba(205,212,255,.12)';
       X.beginPath(); X.moveTo(o.x + Math.cos(ang)*r0, o.y + Math.sin(ang)*r0); X.lineTo(o.x + Math.cos(ang)*r1, o.y + Math.sin(ang)*r1); X.stroke();
     }
   }
@@ -769,6 +790,14 @@ function draw(){
     glassBall(p.x, p.y, PR + 1.5, blueC);
   }
 
+  if (S.miss && S.miss.t > 0) {
+    const m = S.miss, u = 1 - m.t;
+    ctx.lineWidth = 1.5; ctx.strokeStyle = `rgba(${m.c},${.8*m.t})`;
+    ctx.beginPath(); ctx.arc(m.x, m.y, OR + 22*(1 - u*u), 0, 7); ctx.stroke();
+    ctx.fillStyle = `rgba(${m.c},${.9*m.t})`; ctx.font = '500 10px "JetBrains Mono", monospace'; ctx.textAlign = 'center';
+    ctx.fillText('BURNED OUT', m.x, m.y - 24 - 10*u);
+    if (S.mode === 'play') m.t -= 1/50;
+  }
   if (S.flash > 0) { ctx.fillStyle = `rgba(255,138,61,${S.flash*0.08})`; ctx.fillRect(0,0,W,H); S.flash -= 0.06; }
 }
 

@@ -7,6 +7,7 @@ Single-file HTML5 canvas game (`index.html`); no build, no dependencies besides 
 - Fonts: Unbounded (logo, headings, primary buttons), Sora (body), JetBrains Mono (readouts). Accent = orange/ember (lights), blue = player; no pink.
 - HUD = floating instrument strip at the top: logo, chronometer readout (TIME / LIGHTS / ECHOES), round pause button; hidden on the main menu. Echoes show a thin arc = remaining part of their loop.
 - Player = blue glass ball, collectible lights = orange, echoes = black holes with WebGL gravitational lensing (fallback without WebGL: no distortion).
+- Lights burn out (Calm 11 s / Normal 8 s / Stormy 6 s, longer if far away); the 12 bezel ticks around a light are the countdown. A burned-out light scores nothing but still turns the current path into an echo, so standing still is never safe.
 - Echo mechanic (keep as is): each echo replays only its own segment of the path (from the previous light to the one collected), loops it, with a collapse animation at the end and a birth animation at the start. Echoes also replay standing still.
 - Logo: "Timeholes" drawn on canvas with the "o" as a lensing black hole.
 - UI text is English.
