@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}[hidden]{display:none!important}</style>
+<title>Timeholes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: jedna obrazovka – úzká hlavička se skóre, pod ní hrací plocha; nabídky jsou skleněné panely nad živou plochou. Záměrně jen tmavý vzhled. */
+:root{
+  --ink:#15122b;
+  --line:#3a3366;
+  --text:#ece6ff;
+  --muted:#b3aad8;
+  --amber:#ff9a4d;
+  --rose:#ff6f91;
+  --calm:#7dffc4;
+  --blue:#4fb3ff;
+  --orange:#ff8a3d;
+  --glass:rgba(255,255,255,.075);
+  --glass-edge:rgba(255,255,255,.22);
+  --glass-hi:rgba(255,255,255,.14);
+  --display:"Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{color:var(--text);font-family:var(--display);overflow:hidden;
+  background:
+    radial-gradient(60% 50% at 10% 0%, rgba(255,111,145,.28), transparent 70%),
+    radial-gradient(50% 45% at 100% 30%, rgba(120,190,255,.22), transparent 70%),
+    radial-gradient(60% 50% at 50% 110%, rgba(255,181,71,.22), transparent 70%),
+    var(--ink);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));box-sizing:border-box}
+.app{height:100%;display:flex;flex-direction:column;gap:10px;padding-block:12px;box-sizing:border-box;max-width:900px;margin:0 auto}
+/* sdílený skleněný povrch */
+.sheet{
+  background:linear-gradient(155deg, rgba(255,255,255,.13), rgba(255,255,255,.05) 50%, rgba(255,255,255,.025));
+  -webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);
+  border:1px solid var(--glass-edge);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3), inset 0 -1px 0 rgba(255,255,255,.05), 0 12px 40px rgba(5,3,20,.4);
+}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 8px 8px 16px;border-radius:20px}
+h1{font-size:1.6rem;font-weight:800;letter-spacing:-.03em;margin:0;line-height:1;transition:opacity .3s}
+h1 .hl,.logo .hl{color:var(--rose)}
+.logo-cv{display:inline-block;vertical-align:middle}
+/* písmena „o" jako černé díry */
+.hole{display:inline-block;width:.56em;height:.56em;margin:0 .03em;border-radius:50%;vertical-align:-.02em;
+  background:radial-gradient(circle at 50% 50%, #000 0 55%, #08060f 62%, rgba(0,0,0,0) 72%);
+  box-shadow:0 0 0 .045em rgba(255,236,210,.55), 0 0 .18em .06em rgba(255,236,210,.35), 0 0 .5em .15em rgba(180,150,255,.35)}
+.logo .hole{box-shadow:0 0 0 .03em rgba(255,236,210,.6), 0 0 .14em .05em rgba(255,236,210,.4), 0 0 .45em .14em rgba(180,150,255,.4)}
+.menu-on h1{opacity:0}
+.stats{display:flex;gap:6px;flex-wrap:wrap;font-family:var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.chip{display:flex;align-items:baseline;gap:7px;padding:6px 11px;border-radius:999px;font-size:.62rem;letter-spacing:.1em;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
+.chip b{color:var(--text);font-weight:500;font-size:.95rem;letter-spacing:0}
+.chip.score b{color:var(--amber)}
+.chip.bump{animation:bump .35s ease-out}
+@keyframes bump{40%{transform:scale(1.12);background:rgba(255,181,71,.22)}}
+@media (prefers-reduced-motion: reduce){.chip.bump{animation:none}}
+.stage{position:relative;flex:1;min-height:0;border-radius:24px;overflow:hidden;touch-action:none}
+.stage.sheet{background:linear-gradient(155deg, rgba(255,255,255,.08), rgba(21,18,43,.5) 40%, rgba(21,18,43,.6))}
+.stage > canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
+.pause{position:absolute;top:max(12px, env(safe-area-inset-top, 0px));right:12px;width:44px;height:44px;border-radius:50%;padding:0;display:grid;place-items:center;color:var(--text)}
+.pause svg{width:16px;height:16px}
+
+/* --- sklo --- */
+.panel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+.glass{
+  position:relative;width:min(100%, 360px);box-sizing:border-box;
+  background:linear-gradient(155deg, var(--glass-hi), var(--glass) 45%, rgba(255,255,255,.03));
+  -webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%);
+  border:1px solid var(--glass-edge);border-radius:24px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35), inset 0 -1px 0 rgba(255,255,255,.06), 0 24px 60px rgba(5,3,20,.55);
+  padding:28px 24px 22px;display:flex;flex-direction:column;gap:18px;
+  animation:rise .5s cubic-bezier(.2,.8,.2,1) both;
+}
+.glass::before{ /* odlesk na horní hraně */
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(120% 60% at 15% -10%, rgba(255,255,255,.22), transparent 55%);
+}
+@keyframes rise{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.glass{animation:none}}
+
+.eyebrow{margin:0;font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center}
+.logo{margin:-6px 0 0;white-space:nowrap;font-size:clamp(2.3rem, 11vw, 3.6rem);font-weight:800;letter-spacing:-.04em;line-height:.95;text-align:center;
+  text-shadow:0 0 28px rgba(255,111,145,.35)}
+.over-title{margin:0;font-size:1.6rem;font-weight:800;line-height:1.1;text-wrap:balance}
+.glass p{margin:0;color:var(--muted);line-height:1.5;font-size:.95rem}
+.glass p strong{color:var(--text)}
+
+.stack{display:flex;flex-direction:column;gap:10px}
+button{font:700 1rem var(--display);border-radius:14px;padding:13px 18px;cursor:pointer;color:var(--text);transition:transform .12s, background .2s, border-color .2s}
+button:active{transform:scale(.98)}
+button:focus-visible{outline:2px solid var(--calm);outline-offset:3px}
+.primary{border:1px solid rgba(255,214,150,.7);color:#2a1a00;font-size:1.1rem;
+  background:linear-gradient(180deg, #ffc48f, var(--amber));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 8px 26px rgba(255,138,61,.35)}
+.primary:hover{background:linear-gradient(180deg, #ffdca3, #ffbf5e)}
+.ghost{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18)}
+.ghost:hover{background:rgba(255,255,255,.13)}
+
+.label{font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 6px 2px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:14px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.1)}
+.seg button{padding:9px 6px;font-size:.88rem;font-weight:700;background:transparent;border:1px solid transparent;border-radius:10px;color:var(--muted)}
+.seg button[aria-checked="true"]{color:var(--text);background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
+.diff-note{margin:6px 2px 0;font-size:.8rem;color:var(--muted);min-height:1.2em}
+
+.how{display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:14px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.08)}
+.legend{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;font-size:.86rem;color:var(--muted)}
+.dot{width:11px;height:11px;border-radius:50%}
+.hint{font-family:var(--mono);font-size:.68rem;color:var(--muted);letter-spacing:.04em}
+
+.foot{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;color:var(--muted);
+  border-top:1px solid rgba(255,255,255,.1);padding-top:12px;font-variant-numeric:tabular-nums}
+.foot b{color:var(--amber);font-weight:500;font-size:1rem;margin-left:6px}
+.bignum{font-family:var(--mono);font-size:3rem;line-height:1;color:var(--amber);font-variant-numeric:tabular-nums}
+</style>
+
+</head>
+<body>
+<div class="app menu-on" id="app">
+  <header class="sheet">
+    <h1 aria-label="Timeholes"><canvas class="logo-cv" aria-hidden="true"></canvas></h1>
+    <div class="stats">
+      <span class="chip score" id="scoreChip">LIGHTS<b id="score">0</b></span>
+      <span class="chip">ECHOES<b id="echoes">0</b></span>
+      <span class="chip">BEST<b id="best">0</b></span>
+    </div>
+  </header>
+  <div class="stage sheet" id="stage">
+    <canvas id="gl"></canvas>
+    <canvas id="cv"></canvas>
+    <button class="pause sheet" id="pauseBtn" aria-label="Pause game" hidden>
+      <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1.2" fill="currentColor"/><rect x="9.5" y="2" width="3.5" height="12" rx="1.2" fill="currentColor"/></svg>
+    </button>
+    <div class="panel" id="panel">
+
+      <div class="glass" id="paused" hidden>
+        <p class="eyebrow">Paused</p>
+        <h2 class="over-title">The echoes are waiting.</h2>
+        <p>Current run: <strong id="pauseScore">0</strong> lights, <strong id="pauseEchoes">0</strong> echoes.</p>
+        <div class="stack">
+          <button class="primary" id="resume">Resume</button>
+          <button class="ghost" id="quit">Main menu</button>
+        </div>
+      </div>
+
+
+      <div class="glass" id="menu">
+        <p class="eyebrow">A game about your own past</p>
+        <h2 class="logo" aria-label="Timeholes"><canvas class="logo-cv" aria-hidden="true"></canvas></h2>
+        <div class="stack">
+          <button class="primary" id="go">Play</button>
+          <div>
+            <p class="label" id="diffLbl">Difficulty</p>
+            <div class="seg" role="radiogroup" aria-labelledby="diffLbl" id="seg">
+              <button role="radio" id="d-easy" data-d="easy" aria-checked="false">Calm</button>
+              <button role="radio" id="d-normal" data-d="normal" aria-checked="true">Normal</button>
+              <button role="radio" id="d-hard" data-d="hard" aria-checked="false">Stormy</button>
+            </div>
+            <p class="diff-note" id="diffNote"></p>
+          </div>
+          <button class="ghost" id="howBtn" aria-expanded="false" aria-controls="how">How to play</button>
+          <div class="how" id="how" hidden>
+            <p>Collect the orange lights. Every light you collect spawns an <strong>echo</strong>, a small black hole that endlessly replays the exact path you took to reach it. Touch one of your own echoes and the run is over.</p>
+            <div class="legend">
+              <span class="dot" style="background:var(--blue)"></span><span>you</span>
+              <span class="dot" style="background:var(--orange)"></span><span>a light to collect</span>
+              <span class="dot" style="background:#000;box-shadow:0 0 0 1px rgba(255,236,210,.5)"></span><span>an echo: a black hole that bends space around it</span>
+              <span class="dot" style="border:1.5px solid rgba(255,255,255,.6);box-sizing:border-box"></span><span>ring with rays: where an echo is born</span>
+              <span class="dot" style="border:1.5px dashed rgba(255,255,255,.6);box-sizing:border-box;background:radial-gradient(circle, rgba(255,255,255,.7) 25%, transparent 30%)"></span><span>dashed ring: where it collapses</span>
+              <span class="dot" style="background:var(--calm)"></span><span>a green light erases your oldest echo</span>
+            </div>
+            <p class="hint">DRAG ANYWHERE WITH FINGER OR MOUSE · OR USE ARROWS / WASD</p>
+          </div>
+        </div>
+        <div class="foot"><span>BEST · <span id="footDiff">NORMAL</span></span><b id="menuBest">0</b></div>
+      </div>
+
+      <div class="glass" id="over" hidden>
+        <p class="eyebrow">Game over</p>
+        <h2 class="over-title">Your own echo caught you.</h2>
+        <div class="bignum" id="overScore">0</div>
+        <p id="overText"></p>
+        <div class="stack">
+          <button class="primary" id="again">Play again</button>
+          <button class="ghost" id="toMenu">Main menu</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const stage = document.getElementById('stage');
+const $ = id => document.getElementById(id);
+const css = getComputedStyle(document.documentElement);
+const C = k => css.getPropertyValue(k).trim();
+const COL = {amber:C('--amber'), rose:C('--rose'), calm:C('--calm'), line:C('--line')};
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const DIFF = {
+  easy:  {name:'Calm',   calm:3, far:.22, note:'Every 3rd light erases one echo.'},
+  normal:{name:'Normal', calm:5, far:.28, note:'Every 5th light erases one echo.'},
+  hard:  {name:'Stormy', calm:0, far:.36, note:'No erasing. Lights spawn far away.'},
+};
+let diff = 'normal';
+try { diff = localStorage.getItem('ozvena-diff') || 'normal'; if (!DIFF[diff]) diff = 'normal'; } catch(e){}
+function getBest(d){ try { return +localStorage.getItem('ozvena-best-'+d) || (d==='normal' ? +localStorage.getItem('ozvena-best')||0 : 0); } catch(e){ return 0; } }
+function setBest(d,v){ try { localStorage.setItem('ozvena-best-'+d, v); } catch(e){} }
+
+let W = 0, H = 0, dpr = 1;
+function resize(){
+  const r = stage.getBoundingClientRect();
+  const nw = r.width, nh = r.height;
+  if (nw < 20 || nh < 20) return; // skrytá plocha by rozbila souřadnice ozvěn
+  if (W && H && (nw !== W || nh !== H)) {
+    const sx = nw / W, sy = nh / H;
+    const sc = p => { p.x *= sx; p.y *= sy; };
+    sc(S.player); sc(S.target); if (S.orb) sc(S.orb);
+    S.hist.forEach(sc); S.trail.forEach(sc); S.echoes.forEach(e => { if (e.loop) e.pts.forEach(sc); });
+  }
+  W = nw; H = nh; dpr = Math.min(devicePixelRatio || 1, 2);
+  cv.width = W * dpr; cv.height = H * dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  bdpr = Math.min(dpr, W*H > 500000 ? 1 : 1.25);
+  bg.width = Math.round(W * bdpr); bg.height = Math.round(H * bdpr);
+  glc.width = bg.width; glc.height = bg.height;
+  bctx.setTransform(bdpr,0,0,bdpr,0,0);
+  grid.width = bg.width; grid.height = bg.height;
+  const gx = grid.getContext('2d'); gx.setTransform(bdpr,0,0,bdpr,0,0);
+  paintSky(gx);
+  S.echoes.forEach(e => e.path = null);
+}
+// scéna za černými dírami se kreslí sem a pak se kolem děr zakřivuje
+const bg = document.createElement('canvas'), bctx = bg.getContext('2d'), grid = document.createElement('canvas');
+let bdpr = 1, twinkles = [];
+// vesmírné pozadí: hvězdné pole, pruh Mléčné dráhy a pár mihotajících se jasných hvězd (vše se kolem děr zakřivuje)
+function paintSky(gx){
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const tints = ['255,255,255', '200,220,255', '255,230,200', '220,200,255'];
+  // mlhavý pruh Mléčné dráhy po úhlopříčce
+  const ax = 0, ay = H*.85, bx = W, by = H*.15, len = Math.hypot(bx-ax, by-ay), nx = -(by-ay)/len, ny = (bx-ax)/len;
+  for (let i = 0; i < 26; i++) {
+    const t = rnd(), off = (rnd() - .5) * Math.min(W,H) * .25;
+    const x = ax + (bx-ax)*t + nx*off, y = ay + (by-ay)*t + ny*off, r = Math.min(W,H) * (.12 + rnd()*.18);
+    const g = gx.createRadialGradient(x, y, 0, x, y, r);
+    const c = rnd() < .5 ? '170,150,255' : '255,170,200';
+    g.addColorStop(0, `rgba(${c},.07)`); g.addColorStop(1, `rgba(${c},0)`);
+    gx.fillStyle = g; gx.fillRect(x - r, y - r, r*2, r*2);
+  }
+  const star = (x, y, r, a, c) => { gx.fillStyle = `rgba(${c},${a})`; gx.beginPath(); gx.arc(x, y, r, 0, 7); gx.fill(); };
+  const n = Math.round(W * H / 700);
+  for (let i = 0; i < n; i++) {
+    const big = rnd() < .06;
+    star(rnd()*W, rnd()*H, big ? .9 + rnd()*.6 : .35 + rnd()*.45, big ? .7 + rnd()*.3 : .2 + rnd()*.5, tints[Math.floor(rnd()*4)]);
+  }
+  // hustší drobné hvězdy v pruhu
+  for (let i = 0; i < n * .8; i++) {
+    const t = rnd(), off = (rnd() + rnd() + rnd() - 1.5) * Math.min(W,H) * .16;
+    star(ax + (bx-ax)*t + nx*off, ay + (by-ay)*t + ny*off, .3 + rnd()*.4, .2 + rnd()*.45, tints[Math.floor(rnd()*2)]);
+  }
+  twinkles = [];
+  const m = Math.round(8 + W * H / 40000);
+  for (let i = 0; i < m; i++) twinkles.push({x: rnd()*W, y: rnd()*H, r: 1 + rnd()*1.2, ph: rnd()*7, sp: .8 + rnd()*1.6, c: tints[Math.floor(rnd()*4)]});
+}
+function drawTwinkles(){
+  for (const s of twinkles) {
+    const k = reduce ? .8 : .55 + .45 * Math.sin(S.t * s.sp + s.ph);
+    const g = X.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 4);
+    g.addColorStop(0, `rgba(${s.c},${.9*k})`); g.addColorStop(1, `rgba(${s.c},0)`);
+    X.fillStyle = g; X.beginPath(); X.arc(s.x, s.y, s.r * 4, 0, 7); X.fill();
+    X.strokeStyle = `rgba(${s.c},${.45*k})`; X.lineWidth = .7;
+    const L = s.r * (5 + 3*k);
+    X.beginPath(); X.moveTo(s.x - L, s.y); X.lineTo(s.x + L, s.y); X.moveTo(s.x, s.y - L); X.lineTo(s.x, s.y + L); X.stroke();
+  }
+}
+
+const STEP = 1/60, SPEED = 230, PR = 7, ER = 6, OR = 9, PULL = 90;
+const S = { player:{x:0,y:0}, target:{x:0,y:0}, hist:[], seg:0, echoes:[], orb:null, score:0, running:false, mode:'menu', t:0, flash:0, trail:[], glow:1 };
+
+function reset(){
+  S.player = {x:W/2, y:H/2}; S.target = {...S.player};
+  S.prev = null; S.hist = [{...S.player}]; S.seg = 0; S.echoes = []; S.score = 0; S.trail = []; S.flash = 0;
+  spawnOrb(); hud();
+}
+function hud(){ $('score').textContent = S.score; $('echoes').textContent = S.echoes.length; $('best').textContent = getBest(diff); }
+
+function addDemo(){
+  S.orb = null;
+  const make = (n, f, hue, off) => { const pts=[]; for (let i=0;i<n;i++){ const a=i/n*Math.PI*2; pts.push(f(a)); } S.echoes.push({pts, i:Math.floor(n*off), grace:0, hue, loop:true, demo:true}); };
+  make(300, a => ({x:W/2 + Math.sin(a)*W*.32, y:H/2 + Math.sin(2*a)*H*.22}), 0, 0);
+  make(220, a => ({x:W*.5 + Math.cos(a)*W*.2, y:H*.5 + Math.sin(a)*H*.32}), 30, .4);
+  make(360, a => ({x:W/2 + Math.sin(3*a)*W*.38, y:H/2 + Math.cos(2*a)*H*.36}), 55, .7);
+  S.player = {x:-50, y:-50}; S.trail = [];
+}
+
+function spawnOrb(){
+  const cfg = DIFF[diff];
+  const kind = cfg.calm && (S.score + 1) % cfg.calm === 0 && S.echoes.length ? 'calm' : 'light';
+  let bestP = null, bestD = -1;
+  for (let k = 0; k < 30; k++) {
+    const p = {x: 28 + Math.random()*(W-56), y: 28 + Math.random()*(H-56)};
+    if (Math.hypot(p.x - S.player.x, p.y - S.player.y) < Math.min(W,H)*cfg.far) continue;
+    let dmin = 1e9;
+    for (const e of S.echoes) for (let i = 0; i < e.pts.length; i += 10) {
+      const q = e.pts[i]; const d = Math.hypot(p.x-q.x, p.y-q.y); if (d < dmin) dmin = d;
+    }
+    if (dmin > bestD) { bestD = dmin; bestP = p; }
+    if (dmin > 40) break;
+  }
+  S.orb = {...(bestP || {x:W*Math.random(), y:H*Math.random()}), kind};
+}
+
+// --- vstup ---
+let drag = null;
+stage.addEventListener('pointerdown', e => { if (!S.running || e.target.closest('button')) return; drag = {x:e.clientX, y:e.clientY}; stage.setPointerCapture(e.pointerId); });
+stage.addEventListener('pointermove', e => {
+  if (!drag) return;
+  S.target.x += (e.clientX - drag.x) * 1.25; S.target.y += (e.clientY - drag.y) * 1.25;
+  clampT(); drag = {x:e.clientX, y:e.clientY};
+});
+const endDrag = () => drag = null;
+stage.addEventListener('pointerup', endDrag); stage.addEventListener('pointercancel', endDrag);
+const keys = {};
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase(); keys[k] = true;
+  if (S.running && ['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
+  if (k === 'escape' || k === 'p') { if (S.mode === 'play') pause(); else if (S.mode === 'pause') resume(); }
+});
+addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+function clampT(){
+  S.target.x = Math.max(PR, Math.min(W-PR, S.target.x));
+  S.target.y = Math.max(PR, Math.min(H-PR, S.target.y));
+}
+
+function step(){
+  const p = S.player; S.prev = {x:p.x, y:p.y};
+  const kx = (keys.arrowright||keys.d?1:0) - (keys.arrowleft||keys.a?1:0);
+  const ky = (keys.arrowdown||keys.s?1:0) - (keys.arrowup||keys.w?1:0);
+  if (kx || ky) { const l = Math.hypot(kx,ky); S.target.x = p.x + kx/l*SPEED*STEP; S.target.y = p.y + ky/l*SPEED*STEP; clampT(); }
+  const dx = S.target.x - p.x, dy = S.target.y - p.y, d = Math.hypot(dx,dy), mx = SPEED*1.6*STEP;
+  if (d > mx) { p.x += dx/d*mx; p.y += dy/d*mx; } else { p.x = S.target.x; p.y = S.target.y; }
+  if (!(kx||ky) && !drag) { S.target.x = p.x; S.target.y = p.y; }
+
+  S.hist.push({x:p.x, y:p.y});
+  S.trail.push({x:p.x, y:p.y}); if (S.trail.length > 14) S.trail.shift();
+
+  for (const e of S.echoes) {
+    if (e.dying !== undefined) { e.dying--; continue; }
+    advance(e);
+    if (e.grace > 0) { e.grace--; continue; }
+    const q = e.pts[e.i], sc = scaleOf(e);
+    if (sc > .3 && Math.hypot(q.x-p.x, q.y-p.y) < PR + ER*sc - 1) return die();
+  }
+  S.echoes = S.echoes.filter(e => e.dying === undefined || e.dying > 0);
+
+  const o = S.orb;
+  if (o && Math.hypot(o.x-p.x, o.y-p.y) < PR + OR) {
+    if (S.hist.length > 8) S.echoes.push({pts:S.hist, i:0, grace:40, hue:(S.score*37) % 60, loop:true});
+    if (o.kind === 'calm') { const old = S.echoes.find(e => e.dying === undefined); if (old) old.dying = 30; }
+    S.hist = [{x:p.x, y:p.y}]; S.seg = 0;
+    S.score++; S.flash = 1; hud(); spawnOrb();
+    const ch = $('scoreChip'); ch.classList.remove('bump'); void ch.offsetWidth; ch.classList.add('bump');
+  }
+}
+function idleStep(){ for (const e of S.echoes) if (e.dying === undefined) advance(e); }
+// každá ozvěna opakuje dokola svůj úsek cesty: na konci zmizí a začne znovu od začátku
+function nextIndex(e){ return e.loop ? (e.i + 1) % e.pts.length : Math.min(e.i + 1, e.pts.length - 1); }
+// na konci úseku se ozvěna zhroutí do bodu a pak se znovu zrodí na jeho začátku
+const FADE = 26;
+function advance(e){
+  if (e.phase) {
+    if (++e.phase.t >= FADE) {
+      if (e.phase.kind === 'out') { e.i = 0; e.phase = {kind:'in', t:0}; } else e.phase = null;
+    }
+    return;
+  }
+  if (!e.demo && e.i + 1 >= e.pts.length) { e.phase = {kind:'out', t:0}; return; }
+  e.i = nextIndex(e);
+}
+function phaseU(e){ return e.phase ? Math.min(1, (e.phase.t + (S.running || S.mode === 'menu' ? LERP : 0)) / FADE) : 0; }
+function scaleOf(e){
+  if (!e.phase) return 1;
+  const u = phaseU(e);
+  return e.phase.kind === 'out' ? 1 - u*u*u : 1 - Math.pow(1 - u, 3);
+}
+function minFollow(){ let m = S.hist.length; for (const e of S.echoes) if (!e.loop && e.i < m) m = e.i; return m; }
+
+// --- obrazovky ---
+const app = $('app');
+function syncMenu(){
+  for (const b of $('seg').children) b.setAttribute('aria-checked', b.dataset.d === diff);
+  $('diffNote').textContent = DIFF[diff].note;
+  $('footDiff').textContent = DIFF[diff].name.toUpperCase();
+  $('menuBest').textContent = getBest(diff);
+  hud();
+}
+function showMenu(){
+  S.running = false; S.mode = 'menu'; drag = null;
+  reset(); addDemo(); hud();
+  showPanel('menu'); app.classList.add('menu-on'); syncMenu(); $('go').focus();
+}
+function showPanel(id){
+  $('panel').hidden = !id;
+  for (const p of ['menu','over','paused']) $(p).hidden = p !== id;
+  $('pauseBtn').hidden = S.mode !== 'play';
+}
+function start(){
+  reset(); S.running = true; S.mode = 'play';
+  showPanel(null); app.classList.remove('menu-on');
+}
+function pause(){
+  if (S.mode !== 'play') return;
+  S.running = false; S.mode = 'pause'; drag = null;
+  $('pauseScore').textContent = S.score; $('pauseEchoes').textContent = S.echoes.length;
+  showPanel('paused'); $('resume').focus();
+}
+function resume(){
+  if (S.mode !== 'pause') return;
+  S.running = true; S.mode = 'play'; showPanel(null);
+}
+$('pauseBtn').addEventListener('click', pause);
+$('resume').addEventListener('click', resume);
+$('quit').addEventListener('click', showMenu);
+document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+function die(){
+  S.running = false; S.mode = 'over';
+  const old = getBest(diff), nb = S.score > old;
+  if (nb) setBest(diff, S.score);
+  hud();
+  $('overScore').textContent = S.score;
+  const w = S.score === 1 ? 'light' : 'lights';
+  $('overText').innerHTML = nb
+    ? `${S.score} ${w} collected on ${DIFF[diff].name}. <strong>New best.</strong>`
+    : `Your best on ${DIFF[diff].name} is <strong>${old}</strong>. Short, clean paths make short echoes.`;
+  showPanel('over'); $('again').focus();
+}
+
+$('go').addEventListener('click', start);
+$('again').addEventListener('click', start);
+$('toMenu').addEventListener('click', showMenu);
+$('howBtn').addEventListener('click', () => {
+  const open = $('how').hidden; $('how').hidden = !open; $('howBtn').setAttribute('aria-expanded', open);
+  $('howBtn').textContent = open ? 'Hide rules' : 'How to play';
+});
+$('seg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  diff = b.dataset.d; try { localStorage.setItem('ozvena-diff', diff); } catch(err){}
+  syncMenu();
+});
+
+// --- kreslení ---
+const blobs = [
+  {c:'255,111,145', r:.55, sx:.13, sy:.09, px:.3, py:.35},
+  {c:'255,181,71',  r:.45, sx:.08, sy:.12, px:.7, py:.65},
+  {c:'120,190,255', r:.5,  sx:.1,  sy:.07, px:.6, py:.25},
+];
+let X = ctx; // kontext, do kterého se právě kreslí
+function glassBall(x, y, r, c, a = 1){
+  const g = X.createRadialGradient(x - r*.35, y - r*.4, r*.08, x, y, r);
+  g.addColorStop(0, `rgba(255,255,255,${.95*a})`);
+  g.addColorStop(.38, c(.6*a));
+  g.addColorStop(1, c(.22*a));
+  X.fillStyle = g; X.beginPath(); X.arc(x, y, r, 0, 7); X.fill();
+  X.lineWidth = 1.4; X.strokeStyle = c(.95*a); X.beginPath(); X.arc(x, y, r, 0, 7); X.stroke();
+  X.lineWidth = 1; X.strokeStyle = `rgba(255,255,255,${.55*a})`;
+  X.beginPath(); X.arc(x, y, r*.7, Math.PI*1.1, Math.PI*1.55); X.stroke();
+}
+const orangeC = a => `rgba(255,138,61,${a})`, blueC = a => `rgba(79,179,255,${a})`, calmC = a => `rgba(125,255,196,${a})`;
+
+// --- gravitační čočka ve WebGL: každý pixel kolem díry bere barvu z místa blíž ke středu, zvětšení 1/(1 - E²/r²) ---
+const RC = ER + 1.5, EIN = ER * 2.6, ROUT = ER * 9, MAXH = 64;
+const glc = document.getElementById('gl');
+let gl = null, glU = {}, glTex = null;
+try {
+  gl = glc.getContext('webgl', {premultipliedAlpha:true, alpha:true, antialias:false});
+  const vs = `attribute vec2 p; varying vec2 uv; void main(){ uv = vec2(p.x*.5+.5, .5-p.y*.5); gl_Position = vec4(p,0.,1.); }`;
+  const fs = `precision highp float;
+    uniform sampler2D tex; uniform vec2 res; uniform vec3 holes[${MAXH}]; uniform int n; uniform float E; uniform float RO;
+    varying vec2 uv;
+    void main(){
+      vec2 p = uv*res; vec2 q = p;
+      for (int i = 0; i < ${MAXH}; i++) {
+        if (i >= n) break;
+        vec2 c = holes[i].xy; float a = holes[i].z;
+        vec2 d = p - c; float r = length(d);
+        if (r < RO && r > 0.001) {
+          float raw = r < E ? 9.0 : 1.0/max(1.0 - E*E/(r*r), 1.0/9.0);
+          float s = 1.0 + (raw - 1.0) * (1.0 - (r*r*r*r)/(RO*RO*RO*RO)) * a;
+          q += d/s - d;
+        }
+      }
+      gl_FragColor = texture2D(tex, clamp(q/res, 0.0, 1.0));
+    }`;
+  const sh = (t, src) => { const o = gl.createShader(t); gl.shaderSource(o, src); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw gl.getShaderInfoLog(o); return o; };
+  const pr = gl.createProgram();
+  gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr);
+  if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw 'link';
+  gl.useProgram(pr);
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  for (const u of ['tex','res','holes','n','E','RO']) glU[u] = gl.getUniformLocation(pr, u);
+  glTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, glTex);
+  for (const [k,v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR],[gl.TEXTURE_MAG_FILTER, gl.LINEAR],[gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+  gl.uniform1i(glU.tex, 0);
+} catch(err) { gl = null; glc.hidden = true; }
+const holeBuf = new Float32Array(MAXH * 3);
+function renderLens(holes){
+  gl.viewport(0, 0, glc.width, glc.height);
+  gl.bindTexture(gl.TEXTURE_2D, glTex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bg);
+  const n = Math.min(holes.length, MAXH);
+  for (let i = 0; i < n; i++) { holeBuf[i*3] = holes[i].x; holeBuf[i*3+1] = holes[i].y; holeBuf[i*3+2] = holes[i].a; }
+  gl.uniform3fv(glU.holes, holeBuf); gl.uniform1i(glU.n, n);
+  gl.uniform2f(glU.res, W, H); gl.uniform1f(glU.E, EIN); gl.uniform1f(glU.RO, ROUT);
+  gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+function core(x, y, a, sc = 1){
+  if (sc < .02) return;
+  const rc = RC * sc;
+  const g = ctx.createRadialGradient(x, y, rc*.6, x, y, rc*1.9);
+  g.addColorStop(0, `rgba(0,0,0,${.95*a})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, rc*1.9, 0, 7); ctx.fill();
+  ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.beginPath(); ctx.arc(x, y, rc, 0, 7); ctx.fill();
+  ctx.lineWidth = 1; ctx.strokeStyle = `rgba(255,236,210,${.35*a})`;
+  ctx.beginPath(); ctx.arc(x, y, rc + .8, 0, 7); ctx.stroke();
+}
+// zánik: prostor se stáhne do bodu, světlo se spirálou vsaje dovnitř a nakonec krátce blikne
+// vznik: z bodu se rozvine světelná vlna a díra se nafoukne
+function phaseFx(x, y, e){
+  const u = phaseU(e), out = e.phase.kind === 'out';
+  ctx.lineCap = 'round';
+  if (out) {
+    const r = RC + 30 * (1 - u);
+    ctx.lineWidth = 1.5; ctx.strokeStyle = `rgba(255,236,210,${.65*u})`;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke();
+    for (let k = 0; k < 8; k++) {
+      const ang = k/8*Math.PI*2 + u*4.5, rr = 34*(1 - u) + 2;
+      const px = x + Math.cos(ang)*rr, py = y + Math.sin(ang)*rr;
+      const qx = x + Math.cos(ang - .5)*(rr + 7*(1-u)), qy = y + Math.sin(ang - .5)*(rr + 7*(1-u));
+      ctx.lineWidth = 1.6; ctx.strokeStyle = `rgba(255,255,255,${.8*u})`;
+      ctx.beginPath(); ctx.moveTo(qx, qy); ctx.lineTo(px, py); ctx.stroke();
+    }
+    if (u > .85) {
+      const f = (u - .85) / .15;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, 14);
+      g.addColorStop(0, `rgba(255,255,255,${.9*(1-f*.4)})`); g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 14, 0, 7); ctx.fill();
+    }
+  } else {
+    const r = 4 + 40 * u;
+    ctx.lineWidth = 2 * (1 - u) + .5; ctx.strokeStyle = `rgba(255,236,210,${.7*(1-u)})`;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke();
+    ctx.lineWidth = 1; ctx.strokeStyle = `rgba(255,255,255,${.4*(1-u)})`;
+    ctx.beginPath(); ctx.arc(x, y, r*.6, 0, 7); ctx.stroke();
+  }
+}
+// značky úseku: kde ozvěna vzniká (kroužek s paprsky) a kde zaniká (kroužek s tečkou)
+function markers(e, a){
+  const s0 = e.pts[0], s1 = e.pts[e.pts.length - 1];
+  X.lineWidth = 1.2; X.strokeStyle = `rgba(255,255,255,${.4*a})`;
+  X.beginPath(); X.arc(s0.x, s0.y, 5, 0, 7); X.stroke();
+  for (let k = 0; k < 4; k++) {
+    const ang = k*Math.PI/2 + Math.PI/4;
+    X.beginPath(); X.moveTo(s0.x + Math.cos(ang)*7.5, s0.y + Math.sin(ang)*7.5); X.lineTo(s0.x + Math.cos(ang)*10.5, s0.y + Math.sin(ang)*10.5); X.stroke();
+  }
+  X.setLineDash([2,2.5]);
+  X.beginPath(); X.arc(s1.x, s1.y, 7, 0, 7); X.stroke(); X.setLineDash([]);
+  X.fillStyle = `rgba(255,255,255,${.45*a})`; X.beginPath(); X.arc(s1.x, s1.y, 2, 0, 7); X.fill();
+}
+
+function draw(){
+  // 1) scéna za dírami do bg
+  X = bctx;
+  X.clearRect(0,0,W,H);
+  const target = S.mode === 'menu' ? 1 : .5;
+  S.glow += (target - S.glow) * 0.05;
+  const m = Math.max(W,H);
+  for (const b of blobs) {
+    const t = reduce ? 0 : S.t;
+    const x = W*(b.px + Math.sin(t*b.sx*2)*.18), y = H*(b.py + Math.cos(t*b.sy*2)*.18), r = m*b.r;
+    const g = X.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0, `rgba(${b.c},${.38*S.glow})`); g.addColorStop(1, `rgba(${b.c},0)`);
+    X.fillStyle = g; X.fillRect(0,0,W,H);
+  }
+  X.drawImage(grid, 0, 0, W, H);
+  drawTwinkles();
+
+  for (const e of S.echoes) {
+    const a = e.dying !== undefined ? e.dying/30 : 1;
+    const col = 'rgba(255,255,255,';
+    if (e.loop) {
+      X.lineWidth = 1; X.strokeStyle = col + (0.1*a) + ')';
+      if (!e.path) { e.path = new Path2D(); e.pts.forEach((q,i) => i ? e.path.lineTo(q.x,q.y) : e.path.moveTo(q.x,q.y)); }
+      X.stroke(e.path);
+      if (!e.demo) markers(e, a);
+    }
+    X.lineWidth = 3; X.lineCap = 'round';
+    for (let k = 1; k < 16 && !e.phase; k++) {
+      const n = e.pts.length;
+      let i0 = e.i - k, i1 = e.i - k + 1;
+      if (e.loop) { i0 = (i0 + n) % n; i1 = (i1 + n) % n; if (i1 === 0) break; }
+      else if (i0 < 0) break;
+      const p0 = e.pts[i0], p1 = e.pts[i1];
+      X.strokeStyle = col + ((1 - k/16) * 0.25 * a) + ')';
+      X.beginPath(); X.moveTo(p0.x,p0.y); X.lineTo(p1.x,p1.y); X.stroke();
+    }
+  }
+
+  // cesta, po které ozvěny ještě pojedou (od nejstarší ozvěny až k tobě)
+  if (S.mode !== 'menu') {
+    const m = minFollow();
+    if (m < S.seg) {
+      X.lineWidth = 1; X.strokeStyle = 'rgba(255,255,255,.12)'; X.beginPath();
+      for (let i = m; i <= S.seg; i++) { const q = S.hist[i]; i === m ? X.moveTo(q.x,q.y) : X.lineTo(q.x,q.y); }
+      X.stroke();
+    }
+    if (S.hist.length - S.seg > 1) {
+      X.setLineDash([3,5]); X.lineWidth = 1; X.strokeStyle = 'rgba(79,179,255,.3)'; X.beginPath();
+      for (let i = S.seg; i < S.hist.length; i++) { const q = S.hist[i]; i === S.seg ? X.moveTo(q.x,q.y) : X.lineTo(q.x,q.y); }
+      X.stroke(); X.setLineDash([]);
+    }
+  }
+
+  if (S.mode !== 'menu') {
+    S.trail.forEach((q,i) => {
+      X.fillStyle = `rgba(79,179,255,${i/S.trail.length*0.3})`;
+      X.beginPath(); X.arc(q.x,q.y,PR*i/S.trail.length,0,7); X.fill();
+    });
+  }
+
+  // 2) na hlavní plátno: scéna, pak zakřivení kolem děr, pak jádra
+  X = ctx;
+  ctx.clearRect(0,0,W,H);
+  const holes = S.echoes.map(e => {
+    const h = e.pts[e.i], nx = e.pts[nextIndex(e)], a = (e.dying !== undefined ? e.dying/30 : 1) * (e.grace > 0 ? .4 : 1);
+    const f = (S.mode === 'pause' || S.mode === 'over' || e.dying !== undefined || e.phase || e.i + 1 >= e.pts.length) ? 0 : LERP;
+    const sc = scaleOf(e);
+    return {x:h.x + (nx.x - h.x)*f, y:h.y + (nx.y - h.y)*f, a: a*sc, base:a, sc, e};
+  });
+  if (gl) renderLens(holes); else ctx.drawImage(bg, 0, 0, W, H);
+  for (const h of holes) { core(h.x, h.y, h.base, h.sc); if (h.e.phase) phaseFx(h.x, h.y, h.e); }
+  const o = S.orb;
+  if (o) {
+    const pulse = reduce ? 0 : Math.sin(S.t*5) * 2;
+    const c = o.kind === 'calm' ? COL.calm : '#ff8a3d';
+    const g = X.createRadialGradient(o.x,o.y,0,o.x,o.y,OR*3.2);
+    g.addColorStop(0, c); g.addColorStop(1, 'rgba(0,0,0,0)');
+    X.globalAlpha = .35; X.fillStyle = g; X.beginPath(); X.arc(o.x,o.y,OR*3.2,0,7); X.fill(); X.globalAlpha = 1;
+    glassBall(o.x, o.y, OR + pulse*.5, o.kind === 'calm' ? calmC : orangeC);
+  }
+
+  if (S.mode !== 'menu') {
+    const p0 = S.player, pp = S.prev || p0, f = S.running ? LERP : 1;
+    const p = {x: pp.x + (p0.x - pp.x)*f, y: pp.y + (p0.y - pp.y)*f};
+    const g2 = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,PR*3);
+    g2.addColorStop(0,'rgba(79,179,255,.55)'); g2.addColorStop(1,'rgba(79,179,255,0)');
+    ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(p.x,p.y,PR*3,0,7); ctx.fill();
+    glassBall(p.x, p.y, PR + 1.5, blueC);
+  }
+
+  if (S.flash > 0) { ctx.fillStyle = `rgba(255,138,61,${S.flash*0.08})`; ctx.fillRect(0,0,W,H); S.flash -= 0.06; }
+}
+
+let last = performance.now(), acc = 0, LERP = 0;
+function loop(now){
+  acc += Math.min(0.1, (now - last)/1000); last = now;
+  while (acc >= STEP) { if (S.running) step(); else if (S.mode === 'menu') idleStep(); S.t += STEP; acc -= STEP; }
+  LERP = acc / STEP; draw(); requestAnimationFrame(loop);
+}
+
+
+// --- logo: písmena vykreslená na plátno, kolem „o" se zakřivuje prostor stejně jako u děr ve hře ---
+function renderLogo(cv){
+  const host = cv.parentElement, fs = parseFloat(getComputedStyle(host).fontSize);
+  const dp = Math.min(devicePixelRatio || 1, 2);
+  const font = `800 ${fs}px "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif`;
+  const m = document.createElement('canvas').getContext('2d'); m.font = font;
+  const ls = -0.03 * fs, holeD = fs * 0.5, gap = fs * 0.08;
+  const parts = [['Time', C('--text')], ['h', C('--rose')], [null], ['les', C('--rose')]];
+  const pad = Math.round(fs * 0.35);
+  let w = pad;
+  const lay = parts.map(([t, c]) => {
+    const x = w;
+    if (t === null) w += holeD + gap*2; else w += m.measureText(t).width + ls * t.length;
+    return {t, c, x};
+  });
+  w += pad;
+  const h = Math.round(fs * 1.25);
+  const W2 = Math.ceil(w * dp), H2 = Math.ceil(h * dp);
+  const src = document.createElement('canvas'); src.width = W2; src.height = H2;
+  const sx = src.getContext('2d'); sx.scale(dp, dp); sx.font = font; sx.textBaseline = 'alphabetic';
+  try { sx.letterSpacing = ls + 'px'; } catch(e){}
+  const base = h * 0.78;
+  let hx = 0;
+  for (const L of lay) {
+    if (L.t === null) { hx = L.x + gap + holeD/2; continue; }
+    sx.fillStyle = L.c; sx.fillText(L.t, L.x, base);
+  }
+  const hy = base - fs * 0.25, hr = holeD / 2;
+  // zakřivení po pixelech
+  const sd = sx.getImageData(0, 0, W2, H2).data;
+  const out = new ImageData(W2, H2), od = out.data;
+  const cx = hx * dp, cy = hy * dp, E = hr * 0.85 * dp, RO = hr * 2.8 * dp, RO4 = RO**4;
+  for (let y = 0; y < H2; y++) for (let x = 0; x < W2; x++) {
+    let qx = x, qy = y;
+    const dx = x - cx, dy = y - cy, r2 = dx*dx + dy*dy;
+    if (r2 < RO*RO && r2 > 0.01) {
+      const raw = r2 < E*E ? 9 : 1 / Math.max(1 - E*E/r2, 1/9);
+      const sc = 1 + (raw - 1) * (1 - r2*r2/RO4);
+      qx = cx + dx/sc; qy = cy + dy/sc;
+    }
+    const ix = Math.round(qx), iy = Math.round(qy);
+    if (ix < 0 || iy < 0 || ix >= W2 || iy >= H2) continue;
+    const si = (iy*W2 + ix)*4, oi = (y*W2 + x)*4;
+    od[oi] = sd[si]; od[oi+1] = sd[si+1]; od[oi+2] = sd[si+2]; od[oi+3] = sd[si+3];
+  }
+  cv.width = W2; cv.height = H2; cv.style.width = w + 'px'; cv.style.height = h + 'px';
+  cv.style.margin = `${-h*0.08}px ${-pad}px`;
+  const c = cv.getContext('2d'); c.putImageData(out, 0, 0); c.scale(dp, dp);
+  // jádro díry
+  const g = c.createRadialGradient(hx, hy, hr*.8, hx, hy, hr*2.2);
+  g.addColorStop(0, 'rgba(180,150,255,.35)'); g.addColorStop(1, 'rgba(180,150,255,0)');
+  c.fillStyle = g; c.beginPath(); c.arc(hx, hy, hr*2.2, 0, 7); c.fill();
+  const g2 = c.createRadialGradient(hx, hy, hr*.55, hx, hy, hr*1.25);
+  g2.addColorStop(0, 'rgba(0,0,0,1)'); g2.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = g2; c.beginPath(); c.arc(hx, hy, hr*1.25, 0, 7); c.fill();
+  c.fillStyle = '#000'; c.beginPath(); c.arc(hx, hy, hr*.82, 0, 7); c.fill();
+  c.lineWidth = Math.max(1, fs*.025); c.strokeStyle = 'rgba(255,236,210,.6)';
+  c.beginPath(); c.arc(hx, hy, hr*.82 + c.lineWidth/2, 0, 7); c.stroke();
+}
+function renderLogos(){ document.querySelectorAll('.logo-cv').forEach(renderLogo); }
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(renderLogos);
+let logoT; addEventListener('resize', () => { clearTimeout(logoT); logoT = setTimeout(renderLogos, 150); });
+resize(); showMenu();
+new ResizeObserver(resize).observe(stage);
+requestAnimationFrame(loop);
+})();
+</script>
+
+</body>
+</html>
