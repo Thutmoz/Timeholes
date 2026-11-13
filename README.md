@@ -14,4 +14,4 @@ Difficulty: **Calm** (every 3rd light erases an echo), **Normal** (every 5th), *
 
 ## Run it
 
-It's a single file with no build step. Open `index.html` in a browser.
+It's a single file with no build step. Open `timeholes.html` in a browser.

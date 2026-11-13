@@ -1,6 +1,6 @@
 # Timeholes
 
-Single-file HTML5 canvas game (`index.html`); no build, no dependencies besides Google Fonts.
+Single-file HTML5 canvas game (`timeholes.html`); no build, no dependencies besides Google Fonts.
 
 - Full-bleed playfield (no page frames). Space background with a clock face (60 ticks + second hand showing run time) baked into the lensed layer, dark-only theme. Thin viewfinder corner brackets.
 - Menus (main, pause, game over) are round glass "lenses" centered on the dial, with a watch bezel (CSS conic ticks); main-menu controls (difficulty, best, how to play) sit in a dock at the bottom. On short screens (max-height 600px) the lens becomes a rounded card. How to play is a modal sheet.
