@@ -259,11 +259,15 @@ try { diff = localStorage.getItem('ozvena-diff') || 'normal'; if (!DIFF[diff]) d
 function getBest(d){ try { return +localStorage.getItem('ozvena-best-'+d) || (d==='normal' ? +localStorage.getItem('ozvena-best')||0 : 0); } catch(e){ return 0; } }
 function setBest(d,v){ try { localStorage.setItem('ozvena-best-'+d, v); } catch(e){} }
 
-let W = 0, H = 0, dpr = 1;
+// the playfield has the same area on every screen (phone or monitor); only its aspect follows the screen
+// and it is scaled by Z to fill it, so a big monitor shows a bigger picture, not a bigger world
+const WORLD_AREA = 340000;
+let W = 0, H = 0, dpr = 1, Z = 1, SW = 0, SH = 0;
 function resize(){
   const r = stage.getBoundingClientRect();
-  const nw = r.width, nh = r.height;
-  if (nw < 20 || nh < 20) return; // skrytá plocha by rozbila souřadnice ozvěn
+  if (r.width < 20 || r.height < 20) return; // skrytá plocha by rozbila souřadnice ozvěn
+  SW = r.width; SH = r.height; Z = Math.sqrt(SW * SH / WORLD_AREA);
+  const nw = SW / Z, nh = SH / Z;
   if (W && H && (nw !== W || nh !== H)) {
     const sx = nw / W, sy = nh / H;
     const sc = p => { p.x *= sx; p.y *= sy; };
@@ -271,12 +275,12 @@ function resize(){
     S.hist.forEach(sc); S.trail.forEach(sc); S.echoes.forEach(e => { if (e.loop) e.pts.forEach(sc); });
   }
   W = nw; H = nh; dpr = Math.min(devicePixelRatio || 1, 2);
-  cv.width = W * dpr; cv.height = H * dpr;
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  bdpr = Math.min(dpr, W*H > 500000 ? 1 : 1.25);
-  bg.width = Math.round(W * bdpr); bg.height = Math.round(H * bdpr);
+  cv.width = Math.round(SW * dpr); cv.height = Math.round(SH * dpr);
+  ctx.setTransform(dpr*Z,0,0,dpr*Z,0,0);
+  bdpr = Math.min(dpr, SW*SH > 500000 ? 1 : 1.25);
+  bg.width = Math.round(SW * bdpr); bg.height = Math.round(SH * bdpr);
   glc.width = bg.width; glc.height = bg.height;
-  bctx.setTransform(bdpr,0,0,bdpr,0,0);
+  bctx.setTransform(bdpr*Z,0,0,bdpr*Z,0,0);
   grid.width = bg.width; grid.height = bg.height;
   const gx = grid.getContext('2d'); gx.setTransform(bdpr,0,0,bdpr,0,0);
   paintSky(gx);
@@ -287,6 +291,7 @@ const bg = document.createElement('canvas'), bctx = bg.getContext('2d'), grid = 
 let bdpr = 1, twinkles = [];
 // vesmírné pozadí: hvězdné pole, pruh Mléčné dráhy a pár mihotajících se jasných hvězd (vše se kolem děr zakřivuje)
 function paintSky(gx){
+  const W = SW, H = SH; // the sky is painted in screen pixels; twinkles are stored in world units
   let seed = 7;
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const tints = ['255,255,255', '200,220,255', '255,230,200', '220,200,255'];
@@ -332,7 +337,7 @@ function paintSky(gx){
   gx.restore();
   twinkles = [];
   const m = Math.round(8 + W * H / 40000);
-  for (let i = 0; i < m; i++) twinkles.push({x: rnd()*W, y: rnd()*H, r: 1 + rnd()*1.2, ph: rnd()*7, sp: .8 + rnd()*1.6, c: tints[Math.floor(rnd()*4)]});
+  for (let i = 0; i < m; i++) twinkles.push({x: rnd()*W/Z, y: rnd()*H/Z, r: (1 + rnd()*1.2)/Z, ph: rnd()*7, sp: .8 + rnd()*1.6, c: tints[Math.floor(rnd()*4)]});
 }
 // second hand: in a run it shows the time you have survived, in the menu it just turns
 function drawSweep(){
@@ -354,7 +359,7 @@ function drawTwinkles(){
     const g = X.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 4);
     g.addColorStop(0, `rgba(${s.c},${.9*k})`); g.addColorStop(1, `rgba(${s.c},0)`);
     X.fillStyle = g; X.beginPath(); X.arc(s.x, s.y, s.r * 4, 0, 7); X.fill();
-    X.strokeStyle = `rgba(${s.c},${.45*k})`; X.lineWidth = .7;
+    X.strokeStyle = `rgba(${s.c},${.45*k})`; X.lineWidth = .7 / Z;
     const L = s.r * (5 + 3*k);
     X.beginPath(); X.moveTo(s.x - L, s.y); X.lineTo(s.x + L, s.y); X.moveTo(s.x, s.y - L); X.lineTo(s.x, s.y + L); X.stroke();
   }
@@ -415,7 +420,7 @@ let drag = null;
 stage.addEventListener('pointerdown', e => { if (!S.running || e.target.closest('button')) return; drag = {x:e.clientX, y:e.clientY}; stage.setPointerCapture(e.pointerId); });
 stage.addEventListener('pointermove', e => {
   if (!drag) return;
-  S.target.x += (e.clientX - drag.x) * 1.25; S.target.y += (e.clientY - drag.y) * 1.25;
+  S.target.x += (e.clientX - drag.x) * 1.25 / Z; S.target.y += (e.clientY - drag.y) * 1.25 / Z;
   clampT(); drag = {x:e.clientX, y:e.clientY};
 });
 const endDrag = () => drag = null;
